@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 import time
 
 class R2R_ADC:
-    def __init__(self, dynamic_range, compare_time=0.01, verbose=False):
+    def __init__(self, dynamic_range, compare_time=0.1, verbose=False):
         self.dynamic_range = dynamic_range
         self.compare_time = compare_time
         self.verbose = verbose
@@ -26,7 +26,7 @@ class R2R_ADC:
     def sequential_counting_adc(self):
         for code in range(256):
             self.number_to_dac(code)
-            time.sleep(self.compare_time)  # Даём компаратору время на сравнение
+            time.sleep(self.compare_time) 
             if GPIO.input(self.comp_gpio) == 1:
                 if self.verbose:
                     print(f"Превышение при коде {code}")
@@ -48,7 +48,7 @@ class R2R_ADC:
         while left < right:
             mid = (left + right) // 2
             self.number_to_dac(mid)
-            time.sleep(self.compare_time)  # Даём компаратору время на сравнение
+            time.sleep(self.compare_time) 
             if GPIO.input(self.comp_gpio) == 1:
                 right = mid
             else:
