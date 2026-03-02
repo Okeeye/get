@@ -7,7 +7,7 @@ class R2R_ADC:
         self.compare_time = compare_time
         self.verbose = verbose
 
-        # Пины для 8 бит ЦАП (младший бит - первый в списке)
+
         self.bits_gpio = [26, 20, 19, 16, 13, 12, 25, 11]
         self.comp_gpio = 21
 
@@ -48,7 +48,7 @@ class R2R_ADC:
         return voltage
 
 if __name__ == "__main__":
-    DYNAMIC_RANGE = 3.3  # замените на измеренное значение
+    DYNAMIC_RANGE = 3.3 
 
     adc = None
     try:

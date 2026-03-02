@@ -1,38 +1,82 @@
+import sys
 import time
+import matplotlib.pyplot as plt
+import RPi.GPIO as GPIO
+
+sys.path.append('..')
+
 import adc_plot
-from r2r_adc import R2R_ADC   # предполагается, что r2r_adc.py лежит в родительской папке get
 
-# Параметры эксперимента
-DYNAMIC_RANGE = 3.3            # замените на реальное значение, измеренное мультиметром
-COMPARE_TIME = 0.0001           # время сравнения для АЦП (из условия)
-DURATION = 3.0                  # продолжительность измерений в секундах
+class R2R_ADC:
+    def __init__(self, dynamic_range, compare_time = 0.01, verbose=False):
+        self.dynamic_range = dynamic_range
+        self.compare_time = compare_time
+        self.verbose = verbose
 
-# Списки для хранения данных
+
+        self.bits_gpio = [26, 20, 19, 16, 13, 12, 25, 11]
+        self.comp_gpio = 21
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.bits_gpio, GPIO.OUT, initial=0)
+        GPIO.setup(self.comp_gpio, GPIO.IN)
+
+    def __del__(self):
+        self.number_to_dac(0)
+        GPIO.cleanup(self.bits_gpio + [self.comp_gpio])
+
+    def number_to_dac(self, number):
+        for i in range(8):
+            bit = (number >> i) & 1
+            GPIO.output(self.bits_gpio[i], bit)
+        if self.verbose:
+            print(f"Установлено число {number} на ЦАП")
+
+    def sequential_counting_adc(self):
+        for code in range(256):
+            self.number_to_dac(code)
+            time.sleep(self.compare_time)
+
+            if GPIO.input(self.comp_gpio) == 1:
+                if self.verbose:
+                    print(f"Превышение при коде {code}")
+                return code
+
+        if self.verbose:
+            print("Превышение не достигнуто, возвращаю 255")
+        return 255
+
+    def get_sc_voltage(self):
+        code = self.sequential_counting_adc()
+        voltage = code * self.dynamic_range / 255.0
+        if self.verbose:
+            print(f"Код: {code}, напряжение: {voltage:.3f} В")
+        return voltage
+
+
+DYNAMIC_RANGE = 3.3
+COMPARE_TIME = 0.000001
+DURATION = 30.0
+
 voltage_values = []
 time_values = []
 
-# Создаём объект АЦП
 adc = R2R_ADC(dynamic_range=DYNAMIC_RANGE, compare_time=COMPARE_TIME, verbose=False)
 
 try:
     start_time = time.time()
     while time.time() - start_time < DURATION:
-        # Измеряем напряжение
         voltage = adc.get_sc_voltage()
-        # Записываем данные
         voltage_values.append(voltage)
         current_time = time.time() - start_time
         time_values.append(current_time)
-
-        # Отображаем обновлённый график
         adc_plot.plot_voltage_vs_time(time_values, voltage_values, DYNAMIC_RANGE)
 
-        # Можно добавить небольшую задержку, если нужно снизить частоту обновления
-        # time.sleep(0.01)
+    plt.ioff()
+    adc_plot.plot_sampling_period_hist(time_values)
 
 except KeyboardInterrupt:
     print("\nИзмерения прерваны пользователем")
 finally:
-    # Явно удаляем объект АЦП – сработает деструктор (очистка GPIO)
     del adc
     print("Программа завершена")
