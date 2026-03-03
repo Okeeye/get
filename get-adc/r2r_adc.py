@@ -18,7 +18,7 @@ class R2R_ADC:
 
     def number_to_dac(self, number):
         for i in range(8):
-            bit = (number >> i) & 1
+            bit = (number >> (7 - i)) & 1
             GPIO.output(self.bits_gpio[i], bit)
         if self.verbose:
             print(f"Установлено число {number} на ЦАП")
@@ -26,7 +26,7 @@ class R2R_ADC:
     def sequential_counting_adc(self):
         for code in range(256):
             self.number_to_dac(code)
-            time.sleep(self.compare_time) 
+            time.sleep(self.compare_time)
             if GPIO.input(self.comp_gpio) == 1:
                 if self.verbose:
                     print(f"Превышение при коде {code}")
@@ -48,7 +48,7 @@ class R2R_ADC:
         while left < right:
             mid = (left + right) // 2
             self.number_to_dac(mid)
-            time.sleep(self.compare_time) 
+            time.sleep(self.compare_time)
             if GPIO.input(self.comp_gpio) == 1:
                 right = mid
             else:
@@ -59,13 +59,13 @@ class R2R_ADC:
 
     def get_sar_voltage(self):
         code = self.successive_approximation_adc()
-        voltage = code * self.dynamic_range / 255.0
+        voltage = code * self.dynamic_range / 255
         if self.verbose:
             print(f"SAR код: {code}, напряжение: {voltage:.3f} В")
         return voltage
 
 if __name__ == "__main__":
-    DYNAMIC_RANGE = 3.3
+    DYNAMIC_RANGE = 3.295
     adc = None
     try:
         adc = R2R_ADC(dynamic_range=DYNAMIC_RANGE, verbose=True)
